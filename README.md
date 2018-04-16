@@ -5,8 +5,8 @@ Quickstart
 ----
 To run:
 ```$bash
-git clone 
-cd /directory/with/project/
+git clone https://github.com/piaxar/parser.git
+cd parser
 mvn package
 java -jar target/stats-0.1.0.jar input output
 
