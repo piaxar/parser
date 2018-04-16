@@ -171,15 +171,27 @@ public class Parse {
       isPlayerStartingItemsWritten = new ArrayList<>(Arrays.asList(new Boolean[numPlayers]));
       Collections.fill(isPlayerStartingItemsWritten, Boolean.FALSE);
       long tStart = System.currentTimeMillis();
+      outputSymbol("[");
       new SimpleRunner(new InputStreamSource(is)).runWith(this);
       long tMatch = System.currentTimeMillis() - tStart;
+        outputSymbol("{\"endillo\":1}]");
       System.err.format("total time taken: %s\n", (tMatch) / 1000.0);
     }
     
 
     public void output(Entry e) {
         try {
-            this.os.write((g.toJson(e) + "\n").getBytes()); 
+            this.os.write((g.toJson(e) + ",\n").getBytes());
+        }
+        catch (IOException ex)
+        {
+            System.err.println(ex);
+        }
+    }
+
+    public void outputSymbol(String simbol) {
+        try {
+            this.os.write((simbol).getBytes());
         }
         catch (IOException ex)
         {
@@ -193,22 +205,6 @@ public class Parse {
         System.out.println(message.toString());
     }
 
-    /*@OnMessage(DotaUserMessages.CDOTAUserMsg_SpectatorPlayerClick.class)
-    public void onSpectatorPlayerClick(Context ctx, DotaUserMessages.CDOTAUserMsg_SpectatorPlayerClick message){
-        Entry entry = new Entry(time);
-        entry.type = "clicks";
-        //need to get the entity by index
-        entry.key = String.valueOf(message.getOrderType());
-
-        Entity e = ctx.getProcessor(Entities.class).getByIndex(message.getEntindex());
-        entry.x = getEntityProperty(e, "m_iCursor.0000", null);
-        entry.y = getEntityProperty(e, "m_iCursor.0001", null);
-        entry.slot = getEntityProperty(e, "m_iPlayerID", null);
-        //theres also target_index
-        output(entry);
-    } */
-
-    
     @OnMessage(CMsgDOTAMatch.class)
     public void onDotaMatch(Context ctx, CMsgDOTAMatch message)
     {
@@ -267,7 +263,7 @@ public class Parse {
         entry.value = value;
         output(entry);
     }
-    
+
     @OnMessage(CDOTAUserMsg_ChatWheel.class)
     public void onChatWheel(Context ctx, CDOTAUserMsg_ChatWheel message) {
     	Entry entry = new Entry(time);
@@ -305,23 +301,23 @@ public class Parse {
         //matchIdEntry.type = "match_id";
         //matchIdEntry.value = message.getGameInfo().getDota().getMatchId();
         //output(matchIdEntry);
-        
+
         // Extracted cosmetics data from CDOTAWearableItem entities
     	Entry cosmeticsEntry = new Entry();
     	cosmeticsEntry.type = "cosmetics";
     	cosmeticsEntry.key = new Gson().toJson(cosmeticsMap);
     	output(cosmeticsEntry);
-        
+
         //emit epilogue event to mark finish
         Entry epilogueEntry = new Entry();
         epilogueEntry.type = "epilogue";
         epilogueEntry.key = new Gson().toJson(message);
         output(epilogueEntry);
     }
-    
+
     @OnCombatLogEntry
     public void onCombatLogEntry(Context ctx, CombatLogEntry cle) {
-        try 
+        try
         {
             time = Math.round(cle.getTimestamp());
             //create a new entry
@@ -356,7 +352,7 @@ public class Parse {
             else if (cle.getType() == DOTA_COMBATLOG_TYPES.DOTA_COMBATLOG_XP) {
                 combatLogEntry.xp_reason = cle.getXpReason();
             }
-            
+
             combatLogEntry.greevils_greed_stack = greevilsGreedVisitor.visit(time, cle);
             TrackStatus trackStatus = trackVisitor.visit(time, cle);
             if (trackStatus != null) {
@@ -368,7 +364,7 @@ public class Parse {
             }
 
             output(combatLogEntry);
-            
+
             if (cle.getType().ordinal() > 19) {
                 System.err.println(cle);
             }
@@ -399,7 +395,7 @@ public class Parse {
         	}
         }
     }
-    
+
     @OnEntityLeft
     public void onEntityLeft(Context ctx, Entity e) {
         processEntity(ctx, e, true);
@@ -409,24 +405,8 @@ public class Parse {
     @UsesEntities
     @OnTickStart
     public void onTickStart(Context ctx, boolean synthetic) {
-        /*
-        Iterator<Entity> cosmetics = ctx.getProcessor(Entities.class).getAllByDtName("CDOTAWearableItem");
-        while ( cosmetics.hasNext() )
-        {
-            Entity e = cosmetics.next();
-            Integer accountId = getEntityProperty(e, "m_iAccountID", null);
-        	Integer itemDefinitionIndex = getEntityProperty(e, "m_iItemDefinitionIndex", null);
-            if (itemDefinitionIndex == 7559)
-            {
-                System.err.format("%s,%s\n", accountId, itemDefinitionIndex);
-            }
-        }
-        */
-        
-        //TODO check engine to decide whether to use s1 or s2 entities
-        //ctx.getEngineType()
 
-        //s1 DT_DOTAGameRulesProxy
+
         Entity grp = ctx.getProcessor(Entities.class).getByDtName("CDOTAGamerulesProxy");
         Entity pr = ctx.getProcessor(Entities.class).getByDtName("CDOTA_PlayerResource");
         Entity dData = ctx.getProcessor(Entities.class).getByDtName("CDOTA_DataDire");
@@ -435,8 +415,8 @@ public class Parse {
         // Create draftStage variable
         Integer draftStage = getEntityProperty(grp, "m_pGameRules.m_nGameState", null);
 
-        if (grp != null) 
-        {
+        if (grp != null) {
+
             //System.err.println(grp);
             //dota_gamerules_data.m_iGameMode = 22
             //dota_gamerules_data.m_unMatchID64 = 1193091757
